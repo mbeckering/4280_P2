@@ -17,5 +17,25 @@
 #include "scanner.h"
 
 void parser(std::ifstream&);
+void error(std::ifstream&, token, std::string);
+
+// recursive descent parser architecture
+void program(std::ifstream&);
+void block(std::ifstream&);
+void vars(std::ifstream&);
+void expr(std::ifstream&);
+void A(std::ifstream&);
+void N(std::ifstream&);
+void M(std::ifstream&);
+void R(std::ifstream&);
+void stats(std::ifstream&);
+void mStat(std::ifstream&);
+void stat(std::ifstream&);
+void in(std::ifstream&);
+void out(std::ifstream&);
+void if_stat(std::ifstream&);
+void loop(std::ifstream&);
+void assign(std::ifstream&);
+void RO(std::ifstream&);
 
 #endif /* PARSER_H */
