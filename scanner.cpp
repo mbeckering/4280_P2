@@ -15,12 +15,15 @@
 using namespace std;
 
 string keywords[] = {
+    "", "",
     "start", "stop", "iterate", "void", "var",
     "return", "in", "out", "program", "cond",
     "then", "let"
 };
 
-string math[] = {
+string math[] = {\
+    "", "", "", "", "", "", "",
+    "", "", "", "", "", "", "",
     "=", "<", ">", "<=", ">=", "==", ":", "+",
     "-", "*", "/", "%", ".", "(", ")", ",",
     "{", "}", ";", "[", "]"
@@ -111,7 +114,7 @@ token scanner(ifstream& inFile) {
         // check against array of keywords, set KW_tk if match is found
         for (int j=0; j < sizeof(keywords)/sizeof(keywords[0]); j++) {
             if (word == keywords[j]) {
-                t.ID = KW_tk;
+                t.ID = static_cast<tokenID>(j);
                 break;
             }
         }
@@ -126,7 +129,12 @@ token scanner(ifstream& inFile) {
     }
     // otherwise, assuming only valid input, it's an operator or delimiter
     else {
-        t.ID = MATH_tk;
+        for (int j=0; j < sizeof(math)/sizeof(math[0]); j++) {
+            if (word == math[j]) {
+                t.ID = static_cast<tokenID>(j);
+                break;
+            }
+        }
     }
     // assign token values and return token
     t.tokenInstance = word;
