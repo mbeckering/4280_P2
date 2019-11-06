@@ -75,7 +75,7 @@ void parser(ifstream& inFile) {
         cout << "Line=" << t.lineNumber << "\n";
     }
     */
-
+    return;
 }
 
 void error(ifstream& inFile, token t, string expected) {
@@ -83,6 +83,12 @@ void error(ifstream& inFile, token t, string expected) {
     cout << "Error: Line " << t.lineNumber << ": received " << tokenNames[t.ID];
     cout << " \"" << t.tokenInstance << "\", expected " << expected << ".\n";
     exit (EXIT_FAILURE);
+}
+
+// printToken is used for testing
+void printToken() {
+    cout << "Current token: " << tokenNames[t.ID] <<
+            " , token instance " << t.tokenInstance << "\n";
 }
 
 // below is the structure of our recursive descent parser
@@ -177,49 +183,283 @@ void A(ifstream& inFile) {
 }
 
 void N(ifstream& inFile) {
-    
+    M(inFile);
+    if (t.ID == DIVIDE_tk) {
+        t = scanner(inFile);
+        N(inFile);
+        return;
+    }
+    else if (t.ID == MULTIPLY_tk) {
+        t = scanner(inFile);
+        N(inFile);
+        return;
+    }
+    else {
+        return; // predict end of <N>
+    }
 }
 
 void M(ifstream& inFile) {
-    
+    if (t.ID == MINUS_tk) {
+        t = scanner(inFile);
+        M(inFile);
+        return;
+    }
+    else {
+        R(inFile);
+        return;
+    }
 }
 
 void R(ifstream& inFile) {
-    
+    if (t.ID == LEFTBRACKET_tk){
+        t = scanner(inFile);
+        expr(inFile);
+        if (t.ID == RIGHTBRACKET_tk) {
+            t = scanner(inFile);
+            return;
+        }
+        else {
+            error(inFile, t, tokenNames[RIGHTBRACKET_tk]);
+        }
+    }
+    else if (t.ID == ID_tk) {
+        t = scanner(inFile);
+        return;
+    }
+    else if (t.ID == NUM_tk) {
+        t = scanner(inFile);
+        return;
+    }
+    else {
+        error(inFile, t, "[<expr>], ID_tk, or NUM_tk");
+    }
 }
 
 void stats(ifstream& inFile) {
-    
+    stat(inFile);
+    if (t.ID == SEMICOLON_tk) {
+        t = scanner(inFile);
+        mStat(inFile);
+        return;
+    }
+    else {
+        error(inFile, t, tokenNames[SEMICOLON_tk]);
+    }
 }
 
 void mStat(ifstream& inFile) {
-    
+    // check if the next token is a production of <stat>
+    if (t.ID == IN_tk ||
+            t.ID == OUT_tk ||
+            t.ID == START_tk ||
+            t.ID == COND_tk ||
+            t.ID == ITERATE_tk ||
+            t.ID == ID_tk) {
+        // if the next token is a production of <stat>, 
+        // predict <stat> ; <mStat> production for <mStat>
+        stat(inFile);
+        if (t.ID == SEMICOLON_tk) {
+            t = scanner(inFile);
+            mStat(inFile);
+            return;
+        }
+        else {
+            error(inFile, t, tokenNames[SEMICOLON_tk]);
+        }
+    }
+    else {
+        return; // predict empty production for <mStat>
+    }
 }
 
 void stat(ifstream& inFile) {
-    
+    if (t.ID == IN_tk) {
+        in(inFile);
+        return;
+    }
+    else if (t.ID == OUT_tk) {
+        out(inFile);
+        return;
+    }
+    else if (t.ID == START_tk) {
+        block(inFile);
+        return;
+    }
+    else if (t.ID == COND_tk) {
+        if_stat(inFile);
+        return;
+    }
+    else if (t.ID == ITERATE_tk) {
+        loop(inFile);
+        return;
+    }
+    else if (t.ID == ID_tk) {
+        assign(inFile);
+        return;
+    }
+    else {
+        error(inFile, t, " IN_tk, OUT_tk, START_tk, COND_tk,"
+        " ITERATE_tk, or ID_tk");
+    }
 }
 
 void in(ifstream& inFile) {
-    
+    if (t.ID == IN_tk) {
+        t = scanner(inFile);
+        if (t.ID == ID_tk) {
+            t = scanner(inFile);
+            return;
+        }
+        else {
+            error(inFile, t, tokenNames[ID_tk]);
+        }
+    }
+    else {
+        error(inFile, t, tokenNames[IN_tk]);
+    }
 }
 
 void out(ifstream& inFile) {
-    
+    if (t.ID == OUT_tk) {
+        t = scanner(inFile);
+        expr(inFile);
+        return;
+    }
+    else {
+        error(inFile, t, tokenNames[OUT_tk]);
+    }
 }
 
 void if_stat(ifstream& inFile) {
-    
+    if (t.ID == COND_tk) {
+        t = scanner(inFile);
+        if (t.ID == LEFTPAR_tk) {
+            t = scanner(inFile);
+            if (t.ID == LEFTPAR_tk) {
+                t = scanner(inFile);
+                expr(inFile);
+                RO(inFile);
+                expr(inFile);
+                if (t.ID == RIGHTPAR_tk) {
+                    t = scanner(inFile);
+                    if (t.ID == RIGHTPAR_tk) {
+                        t = scanner(inFile);
+                        stat(inFile);
+                        return;
+                    }
+                    else {
+                        error(inFile, t, tokenNames[RIGHTPAR_tk]);
+                    }
+                }
+                else {
+                    error(inFile, t, tokenNames[RIGHTPAR_tk]);
+                }
+            }
+            else {
+                error(inFile, t, tokenNames[LEFTPAR_tk]);
+            }
+        }
+        else {
+            error(inFile, t, tokenNames[LEFTPAR_tk]);
+        }
+    }
+    else {
+        error(inFile, t, tokenNames[COND_tk]);
+    }
 }
 
 void loop(ifstream& inFile) {
-    
+     if (t.ID == ITERATE_tk) {
+        t = scanner(inFile);
+        if (t.ID == LEFTPAR_tk) {
+            t = scanner(inFile);
+            if (t.ID == LEFTPAR_tk) {
+                t = scanner(inFile);
+                expr(inFile);
+                RO(inFile);
+                expr(inFile);
+                if (t.ID == RIGHTPAR_tk) {
+                    t = scanner(inFile);
+                    if (t.ID == RIGHTPAR_tk) {
+                        t = scanner(inFile);
+                        stat(inFile);
+                        return;
+                    }
+                    else {
+                        error(inFile, t, tokenNames[RIGHTPAR_tk]);
+                    }
+                }
+                else {
+                    error(inFile, t, tokenNames[RIGHTPAR_tk]);
+                }
+            }
+            else {
+                error(inFile, t, tokenNames[LEFTPAR_tk]);
+            }
+        }
+        else {
+            error(inFile, t, tokenNames[LEFTPAR_tk]);
+        }
+    }
+    else {
+        error(inFile, t, tokenNames[ITERATE_tk]);
+    }
 }
 
 void assign(ifstream& inFile) {
-    
+    if (t.ID == ID_tk) {
+        t = scanner(inFile);
+        if (t.ID == LESSTHAN_tk) {
+            t = scanner(inFile);
+            if (t.ID == LESSTHAN_tk) {
+                t = scanner(inFile);
+                expr(inFile);
+            }
+            else {
+                error(inFile, t, tokenNames[LESSTHAN_tk]);
+            }
+        }
+        else {
+            error(inFile, t, tokenNames[LESSTHAN_tk]);
+        }
+    }
+    else {
+        error(inFile, t, tokenNames[ID_tk]);
+    }
 }
 
 void RO(ifstream& inFile) {
-    
+    if (t.ID == LESSTHAN_tk) {
+        t = scanner(inFile);
+        if (t.ID == LESSTHAN_tk) { // detected "< <"
+            t = scanner(inFile);
+            return;
+        }
+        else if (t.ID == GREATERTHAN_tk) { // detected "< >"
+            t = scanner(inFile);
+            return;
+        }
+        else { // detected "<"
+            return;
+        }
+    }
+    else if (t.ID == GREATERTHAN_tk) {
+        t = scanner(inFile);
+        if (t.ID == GREATERTHAN_tk) { // detected "> >"
+            t = scanner(inFile);
+            return;
+        }
+        else { // detected ">"
+            return;
+        }
+    }
+    else if (t.ID == EQUAL_tk) {
+        t = scanner(inFile);
+        return;
+    }
+    else {
+        error(inFile, t, "LESSTHAN_tk, GREATERTHAN_tk, or EQUAL_tk");
+    }
+
 }
