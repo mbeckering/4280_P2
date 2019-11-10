@@ -14,28 +14,28 @@
 #include <iostream>
 #include <string>
 #include "token.h"
-#include "scanner.h"
+#include "node.h"
 
-void parser(std::ifstream&);
+node* parser(std::ifstream&);
 void error(std::ifstream&, token, std::string);
 
 // recursive descent parser architecture
-void program(std::ifstream&);
-void block(std::ifstream&);
-void vars(std::ifstream&);
-void expr(std::ifstream&);
-void A(std::ifstream&);
-void N(std::ifstream&);
-void M(std::ifstream&);
-void R(std::ifstream&);
-void stats(std::ifstream&);
-void mStat(std::ifstream&);
-void stat(std::ifstream&);
-void in(std::ifstream&);
-void out(std::ifstream&);
-void if_stat(std::ifstream&);
-void loop(std::ifstream&);
-void assign(std::ifstream&);
-void RO(std::ifstream&);
+node* program(std::ifstream&);
+node* block(std::ifstream&);
+node* vars(std::ifstream&);
+node* expr(std::ifstream&);
+node* A(std::ifstream&);
+node* N(std::ifstream&);
+node* M(std::ifstream&);
+node* R(std::ifstream&);
+node* stats(std::ifstream&);
+node* mStat(std::ifstream&);
+node* stat(std::ifstream&);
+node* in(std::ifstream&);
+node* out(std::ifstream&);
+node* if_stat(std::ifstream&);
+node* loop(std::ifstream&);
+node* assign(std::ifstream&);
+node* RO(std::ifstream&);
 
 #endif /* PARSER_H */

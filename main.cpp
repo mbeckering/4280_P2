@@ -12,14 +12,12 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include "token.h"
 #include "parser.h"
+#include "testTree.h"
+#include "node.h"
 
 using namespace std;
 
-/*
- * 
- */
 int main(int argc, char** argv) {
     string inputFilenameStr; // name of data file WITH extension to open for sorting
     string outputFilenameStr;
@@ -65,9 +63,12 @@ int main(int argc, char** argv) {
         cout << "Opened " << inputFilenameStr << "\n";
     }
     
-    parser(in);
+    node* root = parser(in);
     
     in.close();
+    
+    // call the print function with root pointer and initial depth of 0
+    printPreorder(root, 0);
 
     return 0;
 }

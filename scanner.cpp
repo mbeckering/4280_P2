@@ -8,10 +8,10 @@
  * Last edited: October 22
  */
 
-#include "scanner.h"
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
+#include "scanner.h"
 
 using namespace std;
 

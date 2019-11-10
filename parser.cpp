@@ -7,8 +7,12 @@
  * Created on November 1, 2019, 9:55 AM
  */
 
-#include "parser.h"
+#include <fstream>
+#include <iostream>
+#include <string>
 #include <cstdlib>
+#include "parser.h"
+#include "scanner.h"
 
 using namespace std;
 
@@ -55,29 +59,29 @@ string tokenNames[] = {
 // global token for use in recursive descent parse functions
 token t;
 
-void parser(ifstream& inFile) {
+// getNode function defined here to avoid what I think is a
+// recursive  multiple inclusion issue with node.h
+node* getNode(std::string label) {
+    node *temp = new node();
+    temp->label = label;
+    temp->c0 = temp->c2 = temp->c2 = temp->c3 = NULL;
+    return temp;
+}
 
+node* parser(ifstream& inFile) {
+    // create the root of the parse tree
+    node* root;
     // get the first token from the scanner
     t = scanner(inFile);
     // call the first nonterminal's function
-    program(inFile);
+    root = program(inFile);
     
-    /* this code prints all tokens after retrieving the first.. save for testing
-    while (t.ID != EOF_tk) {
-        cout << tokenNames[t.ID] << " ";
-        cout << t.tokenInstance << " ";
-        cout << "Line=" << t.lineNumber << "\n";
-        t = scanner(inFile);
-    }
-    if (t.ID == EOF_tk) {
-        cout << tokenNames[t.ID] << " ";
-        cout << t.tokenInstance << " ";
-        cout << "Line=" << t.lineNumber << "\n";
-    }
-    */
-    return;
+    return root;
 }
 
+// error() accepts the filestream, a token, and a string representing the
+// expected token. it uses this information to print a detailed error 
+// message and closes the filestream before exiting the program.
 void error(ifstream& inFile, token t, string expected) {
     inFile.close();
     cout << "parser error: line " << t.lineNumber <<
@@ -92,31 +96,33 @@ void printToken() {
             " , token instance " << t.tokenInstance << "\n";
 }
 
-// below is the structure of our recursive descent parser
-// each function represents a nonterminal of the same name
+// below is the structure of our recursive descent parser.
+// each function represents a nonterminal of the same name.
 // each function accepts an UNCONSUMED token, so it must call
-// scanner() to see the token it should expect
+// scanner() to see the token it should expect.
 
-void program(ifstream& inFile) {
-    vars(inFile);
-    block(inFile);
+node* program(ifstream& inFile) {
+    node* p = getNode("program");
+    p->c0 = vars(inFile);
+    p->c1 = block(inFile);
     if (t.ID == EOF_tk) {
         cout << "parser: parse OK\n";
     }
     else {
         error(inFile, t, tokenNames[EOF_tk]);
     }
-    return;
+    return p;
 }
 
-void block(ifstream& inFile) {
+node* block(ifstream& inFile) {
+    node* p = getNode("block");
     if (t.ID == START_tk) {
         t = scanner(inFile);
-        vars(inFile);
-        stats(inFile);
+        p->c0 = vars(inFile);
+        p->c1 = stats(inFile);
         if (t.ID == STOP_tk) {
             t = scanner(inFile); // got expected STOP_tk token, consume it
-            return; // <block> grammar correct
+            return p; // <block> grammar correct
         }
         else {
             // didn't see expected STOP token
@@ -124,22 +130,25 @@ void block(ifstream& inFile) {
         }
     }
     else {
-        // didnt see expected START token
+        // didn't see expected START token
         error(inFile, t, tokenNames[START_tk]);
     }
 }
 
-void vars(ifstream& inFile) {
+node* vars(ifstream& inFile) {
     if (t.ID == VAR_tk) {
+        node* p = getNode("vars");
         t = scanner(inFile);
         if (t.ID == ID_tk) {
+            p->t0 = t;
             t = scanner(inFile);
             if (t.ID == COLON_tk) {
                 t = scanner(inFile);
                 if (t.ID == NUM_tk) {
+                    p->t1 = t;
                     t = scanner(inFile);
-                    vars(inFile);
-                    return; // grammer for this <vars> production is correct
+                    p->c0 = vars(inFile);
+                    return p; // grammar for this <vars> production is correct
                 }
                 else {
                     error(inFile, t, tokenNames[NUM_tk]);
@@ -155,101 +164,117 @@ void vars(ifstream& inFile) {
     }
     else {
         // predict empty production for <vars>
-        return;
+        return NULL;
     }
 }
 
-void expr(ifstream& inFile) {
-    A(inFile);
+node* expr(ifstream& inFile) {
+    node* p = getNode("expr");
+    p->c0 = A(inFile);
     if (t.ID == PLUS_tk) {
+        p->t0 = t;
         t = scanner(inFile);
-        expr(inFile);
-        return;
+        p->c1 = expr(inFile);
+        return p;
     }
     else {
-        return; // predict end of <expr>
+        return p; // predict end of <expr>
     }
 }
 
-void A(ifstream& inFile) {
-    N(inFile);
+node* A(ifstream& inFile) {
+    node* p = getNode("A");
+    p->c0 = N(inFile);
     if (t.ID == MINUS_tk) {
+        p->t0 = t;
         t = scanner(inFile);
-        A(inFile);
-        return;
+        p->c1 = A(inFile);
+        return p;
     }
     else {
-        return; // predict end of <A>
+        return p; // predict end of <A>
     }
 }
 
-void N(ifstream& inFile) {
-    M(inFile);
+node* N(ifstream& inFile) {
+    node* p = getNode("N");
+    p->c1 = M(inFile);
     if (t.ID == DIVIDE_tk) {
+        p->t0 = t;
         t = scanner(inFile);
-        N(inFile);
-        return;
+        p->c2 = N(inFile);
+        return p;
     }
     else if (t.ID == MULTIPLY_tk) {
+        p->t0 = t;
         t = scanner(inFile);
-        N(inFile);
-        return;
+        p->c2 = N(inFile);
+        return p;
     }
     else {
-        return; // predict end of <N>
+        return p; // predict end of <N>
     }
 }
 
-void M(ifstream& inFile) {
+node* M(ifstream& inFile) {
+    node* p = getNode("M");
     if (t.ID == MINUS_tk) {
+        p->t0 = t;
         t = scanner(inFile);
-        M(inFile);
-        return;
+        p->c0 = M(inFile);
+        return p;
     }
     else {
-        R(inFile);
-        return;
+        p->c0 = R(inFile);
+        return p;
     }
 }
 
-void R(ifstream& inFile) {
+node* R(ifstream& inFile) {
+    node* p = getNode("R");
     if (t.ID == LEFTBRACKET_tk){
+        p->t0 = t;
         t = scanner(inFile);
-        expr(inFile);
+        p->c0 = expr(inFile);
         if (t.ID == RIGHTBRACKET_tk) {
+            p->t1 = t;
             t = scanner(inFile);
-            return;
+            return p;
         }
         else {
             error(inFile, t, tokenNames[RIGHTBRACKET_tk]);
         }
     }
     else if (t.ID == ID_tk) {
+        p->t0 = t;
         t = scanner(inFile);
-        return;
+        return p;
     }
     else if (t.ID == NUM_tk) {
+        p->t0 = t;
         t = scanner(inFile);
-        return;
+        return p;
     }
     else {
-        error(inFile, t, "[<expr>], ID_tk, or NUM_tk");
+        error(inFile, t, "ID_tk, or NUM_tk");
     }
 }
 
-void stats(ifstream& inFile) {
-    stat(inFile);
+node* stats(ifstream& inFile) {
+    node* p = getNode("stats");
+    p->c0 = stat(inFile);
     if (t.ID == SEMICOLON_tk) {
+        p->t0 = t;
         t = scanner(inFile);
-        mStat(inFile);
-        return;
+        p->c1 = mStat(inFile);
+        return p;
     }
     else {
         error(inFile, t, tokenNames[SEMICOLON_tk]);
     }
 }
 
-void mStat(ifstream& inFile) {
+node* mStat(ifstream& inFile) {
     // check if the next token is a production of <stat>
     if (t.ID == IN_tk ||
             t.ID == OUT_tk ||
@@ -259,45 +284,47 @@ void mStat(ifstream& inFile) {
             t.ID == ID_tk) {
         // if the next token is a production of <stat>, 
         // predict <stat> ; <mStat> production for <mStat>
-        stat(inFile);
+        node* p = getNode("mStat");
+        p->c0 = stat(inFile);
         if (t.ID == SEMICOLON_tk) {
             t = scanner(inFile);
-            mStat(inFile);
-            return;
+            p->c1 = mStat(inFile);
+            return p;
         }
         else {
             error(inFile, t, tokenNames[SEMICOLON_tk]);
         }
     }
     else {
-        return; // predict empty production for <mStat>
+        return NULL; // predict empty production for <mStat>
     }
 }
 
-void stat(ifstream& inFile) {
+node* stat(ifstream& inFile) {
+    node* p = getNode("stat");
     if (t.ID == IN_tk) {
-        in(inFile);
-        return;
+        p->c0 = in(inFile);
+        return p;
     }
     else if (t.ID == OUT_tk) {
-        out(inFile);
-        return;
+        p->c0 = out(inFile);
+        return p;
     }
     else if (t.ID == START_tk) {
-        block(inFile);
-        return;
+        p->c0 = block(inFile);
+        return p;
     }
     else if (t.ID == COND_tk) {
-        if_stat(inFile);
-        return;
+        p->c0 = if_stat(inFile);
+        return p;
     }
     else if (t.ID == ITERATE_tk) {
-        loop(inFile);
-        return;
+        p->c0 = loop(inFile);
+        return p;
     }
     else if (t.ID == ID_tk) {
-        assign(inFile);
-        return;
+        p->c0 = assign(inFile);
+        return p;
     }
     else {
         error(inFile, t, " IN_tk, OUT_tk, START_tk, COND_tk,"
@@ -305,12 +332,14 @@ void stat(ifstream& inFile) {
     }
 }
 
-void in(ifstream& inFile) {
+node* in(ifstream& inFile) {
     if (t.ID == IN_tk) {
         t = scanner(inFile);
         if (t.ID == ID_tk) {
+            node* p = getNode("in");
+            p->t0 = t;
             t = scanner(inFile);
-            return;
+            return p;
         }
         else {
             error(inFile, t, tokenNames[ID_tk]);
@@ -321,33 +350,39 @@ void in(ifstream& inFile) {
     }
 }
 
-void out(ifstream& inFile) {
+node* out(ifstream& inFile) {
     if (t.ID == OUT_tk) {
+        node* p = getNode("out");
         t = scanner(inFile);
-        expr(inFile);
-        return;
+        p->c0 = expr(inFile);
+        return p;
     }
     else {
         error(inFile, t, tokenNames[OUT_tk]);
     }
 }
 
-void if_stat(ifstream& inFile) {
+node* if_stat(ifstream& inFile) {
     if (t.ID == COND_tk) {
+        node* p = getNode("if");
         t = scanner(inFile);
         if (t.ID == LEFTPAR_tk) {
+            p->t0 = t;
             t = scanner(inFile);
             if (t.ID == LEFTPAR_tk) {
+                p->t1 = t;
                 t = scanner(inFile);
-                expr(inFile);
-                RO(inFile);
-                expr(inFile);
+                p->c0 = expr(inFile);
+                p->c1 = RO(inFile);
+                p->c2 = expr(inFile);
                 if (t.ID == RIGHTPAR_tk) {
+                    p->t2 = t;
                     t = scanner(inFile);
                     if (t.ID == RIGHTPAR_tk) {
+                        p->t3 = t;
                         t = scanner(inFile);
-                        stat(inFile);
-                        return;
+                        p->c3 = stat(inFile);
+                        return p;
                     }
                     else {
                         error(inFile, t, tokenNames[RIGHTPAR_tk]);
@@ -370,22 +405,27 @@ void if_stat(ifstream& inFile) {
     }
 }
 
-void loop(ifstream& inFile) {
-     if (t.ID == ITERATE_tk) {
+node* loop(ifstream& inFile) {
+    if (t.ID == ITERATE_tk) {
+        node* p = getNode("loop");
         t = scanner(inFile);
         if (t.ID == LEFTPAR_tk) {
+            p->t0 = t;
             t = scanner(inFile);
             if (t.ID == LEFTPAR_tk) {
+                p->t1 = t;
                 t = scanner(inFile);
-                expr(inFile);
-                RO(inFile);
-                expr(inFile);
+                p->c0 = expr(inFile);
+                p->c1 = RO(inFile);
+                p->c2 = expr(inFile);
                 if (t.ID == RIGHTPAR_tk) {
+                    p->t2 = t;
                     t = scanner(inFile);
                     if (t.ID == RIGHTPAR_tk) {
+                        p->t3 = t;
                         t = scanner(inFile);
-                        stat(inFile);
-                        return;
+                        p->c3 = stat(inFile);
+                        return p;
                     }
                     else {
                         error(inFile, t, tokenNames[RIGHTPAR_tk]);
@@ -408,14 +448,18 @@ void loop(ifstream& inFile) {
     }
 }
 
-void assign(ifstream& inFile) {
+node* assign(ifstream& inFile) {
     if (t.ID == ID_tk) {
+        node* p = getNode("assign");
+        p->t0 = t;
         t = scanner(inFile);
         if (t.ID == LESSTHAN_tk) {
+            p->t1 = t;
             t = scanner(inFile);
             if (t.ID == LESSTHAN_tk) {
+                p->t2 = t;
                 t = scanner(inFile);
-                expr(inFile);
+                p->c0 = expr(inFile);
             }
             else {
                 error(inFile, t, tokenNames[LESSTHAN_tk]);
@@ -430,34 +474,41 @@ void assign(ifstream& inFile) {
     }
 }
 
-void RO(ifstream& inFile) {
+node* RO(ifstream& inFile) {
+    node* p = getNode("RO");
     if (t.ID == LESSTHAN_tk) {
+        p->t0 = t;
         t = scanner(inFile);
         if (t.ID == LESSTHAN_tk) { // detected "< <"
+            p->t1 = t;
             t = scanner(inFile);
-            return;
+            return p;
         }
         else if (t.ID == GREATERTHAN_tk) { // detected "< >"
+            p->t1 = t;
             t = scanner(inFile);
-            return;
+            return p;
         }
         else { // detected "<"
-            return;
+            return p;
         }
     }
     else if (t.ID == GREATERTHAN_tk) {
+        p->t0 = t;
         t = scanner(inFile);
         if (t.ID == GREATERTHAN_tk) { // detected "> >"
+            p->t1 = t;
             t = scanner(inFile);
-            return;
+            return p;
         }
         else { // detected ">"
-            return;
+            return p;
         }
     }
     else if (t.ID == EQUAL_tk) {
+        p->t0 = t;
         t = scanner(inFile);
-        return;
+        return p;
     }
     else {
         error(inFile, t, "LESSTHAN_tk, GREATERTHAN_tk, or EQUAL_tk");
