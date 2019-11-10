@@ -11,6 +11,7 @@
 #include "scanner.h"
 #include <iostream>
 #include <fstream>
+#include <cstdlib>
 
 using namespace std;
 
@@ -36,6 +37,7 @@ token scanner(ifstream& inFile) {
     static bool firstScan = 1;
     
     bool seenGraph = false; // flag to help eliminate leading whitespace
+    bool foundValidToken = false; // flag to help find invalid tokens
     string word = "";
     string letter = "";
     token t;
@@ -131,9 +133,18 @@ token scanner(ifstream& inFile) {
     else {
         for (int j=0; j < sizeof(math)/sizeof(math[0]); j++) {
             if (word == math[j]) {
+                foundValidToken = true;
                 t.ID = static_cast<tokenID>(j);
                 break;
             }
+        }
+        // if a valid token was not found in the group of operators and
+        // delimiters, then the "word" is not a valid token...
+        if (foundValidToken == false) {
+            cout << "scanner error: line " << lineNumber 
+                    << ": invalid token \"" << word << "\"\n";
+            inFile.close();
+            exit(EXIT_FAILURE);
         }
     }
     // assign token values and return token

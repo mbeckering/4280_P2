@@ -80,9 +80,10 @@ void parser(ifstream& inFile) {
 
 void error(ifstream& inFile, token t, string expected) {
     inFile.close();
-    cout << "Error: Line " << t.lineNumber << ": received " << tokenNames[t.ID];
+    cout << "parser error: line " << t.lineNumber <<
+            ": received " << tokenNames[t.ID];
     cout << " \"" << t.tokenInstance << "\", expected " << expected << ".\n";
-    exit (EXIT_FAILURE);
+    exit(EXIT_FAILURE);
 }
 
 // printToken is used for testing
@@ -100,7 +101,7 @@ void program(ifstream& inFile) {
     vars(inFile);
     block(inFile);
     if (t.ID == EOF_tk) {
-        cout << "Parse OK\n";
+        cout << "parser: parse OK\n";
     }
     else {
         error(inFile, t, tokenNames[EOF_tk]);
