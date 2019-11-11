@@ -68,6 +68,7 @@ node* getNode(std::string label) {
     return temp;
 }
 
+// auxiliary function to begin the recursive descent and return root pointer
 node* parser(ifstream& inFile) {
     // create the root of the parse tree
     node* root;
@@ -90,7 +91,7 @@ void error(ifstream& inFile, token t, string expected) {
     exit(EXIT_FAILURE);
 }
 
-// printToken is used for testing
+// printToken used only for testing
 void printToken() {
     cout << "Current token: " << tokenNames[t.ID] <<
             " , token instance " << t.tokenInstance << "\n";
@@ -264,7 +265,6 @@ node* stats(ifstream& inFile) {
     node* p = getNode("stats");
     p->c0 = stat(inFile);
     if (t.ID == SEMICOLON_tk) {
-        p->t0 = t;
         t = scanner(inFile);
         p->c1 = mStat(inFile);
         return p;

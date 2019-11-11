@@ -13,6 +13,7 @@
 #include <iostream>
 #include "token.h"
 
+// data structure for the each node of the parse tree
 struct node {
     std::string label;
     token t0, t1, t2, t3; // token0, token1, etc

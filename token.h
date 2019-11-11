@@ -51,6 +51,7 @@ enum tokenID {
         EOF_tk      // 35
     };
 
+// data structure for each token
 struct token {
     tokenID ID;
     std::string tokenInstance;
