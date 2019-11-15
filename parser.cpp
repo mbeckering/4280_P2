@@ -127,7 +127,8 @@ node* block(ifstream& inFile) {
         }
         else {
             // didn't see expected STOP token
-            error(inFile, t, tokenNames[STOP_tk]);
+            error(inFile, t, "STOP_tk \nWARNING: blank line required at"
+                    " end of program");
         }
     }
     else {
@@ -460,6 +461,7 @@ node* assign(ifstream& inFile) {
                 p->t2 = t;
                 t = scanner(inFile);
                 p->c0 = expr(inFile);
+                return p;
             }
             else {
                 error(inFile, t, tokenNames[LESSTHAN_tk]);
